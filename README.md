@@ -6,7 +6,12 @@ This project implements an automated test suite for the HTTP proxy lab. It spins
 
 ### Installing your proxy code
 
-Place your proxy Python files inside `proxy/app` (create the folder if it doesn't exist). You can have as many files as you like inside, but there MUST be a `proxy.py` file that starts the proxy on port 8080 when you start it.
+Place your proxy Python files inside `proxy/app` (create the folder if it doesn't exist). You can have as many files as you like but your application must conform to the following requirements:
+
+- There must be a `proxy.py` file as this will be the entrypoint called by the monitor.
+- Your application must start the proxy on port `8080` when no arguments are passed via the CLI.
+- Your application must clear the contents of the cache folder (if you save it on disk) before serving clients on the HTTP proxy.
+- Your application must handle `SIGINT` gracefully, releasing all resources and exiting within 5 seconds.
 
 ### Starting the environment
 
@@ -35,6 +40,10 @@ A fresh instance of your proxy is started for each test that is run. You can go 
 The cache directory will be left in the state of the last test run as it is cleaned at the start of each test. If debugging errors it is suggested you run one test at a time using the `-k` argument in `PYTEST_ADDOPTS`.
 
 > If you open a log file in the editor and re-run the test suite, you need to reload the file from disk to get the latest version.
+
+#### Proxy Monitor Log
+
+The monitor is the process that runs your proxy repeatedly on demand. You can inspect the logs of the `proxy` container (`docker compose logs proxy`) to check for any abnormalities, such as detecting the TIME_WAIT bug (see below).
 
 ### Running the tests again
 
@@ -74,9 +83,17 @@ Use the `-k` argument in `PYTEST_ADDOPTS`. See pytest documentation on [run test
 
 ### Troubleshooting & Debugging
 
-#### test client hangs without errors
+#### Test Client Hanging / TCP TIME_WAIT
 
-If after waiting for more than 60 seconds (the timeout configured in the HTTP clients) the test client docker container does not respond, stop the `test-client` conntainer and the `proxy` container. Then restart the `proxy` container, wait for it to be ready, then start the `test-client` container again.
+If the client does not proceed for more than a minute, check the logs of the proxy container to see if the monitor has crashed. Your code might be suffering from the [TCP `TIME_WAIT` bug](http://hea-www.harvard.edu/~fine/Tech/addrinuse.html) if the monitor reports something like this in the logs:
+
+```
+WARNING: still found port used by process None in TIME_WAIT state
+```
+
+If the monitor has indeed crashed or stopped responding without any other errors, it might be a bug in the monitor. Raise issue on Github & contact your TA.
+
+In any case, if you need to force abort the test, you can stop the test-client container, then stop the proxy container, then restart the proxy container, and finally restart the test-client container when you are ready.
 
 #### Wireshark
 
@@ -97,3 +114,15 @@ The `smoke_test` suite is an extended suite for extreme edge cases. You will not
 ### Your own tests
 
 Feel free to add your own test files under the `tests` directory.
+
+## Development
+
+First developed by Chester Koh for the Spring 2023 Term.
+
+### Things to update for future batches
+
+- More basic tests, such as caching query parameters
+- Bonus tests for extra features like ETAG and HTTPS
+- Test downloads of large files (scale of megabytes)
+- Test for TIME_WAIT bug
+- Rename the `proxy` service in docker compose to `proxy-monitor` for avoidance of doubt.

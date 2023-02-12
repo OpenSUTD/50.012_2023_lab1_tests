@@ -35,6 +35,7 @@ services:
     restart: "no"
   proxy:
     build: proxy
+    image: 50012-lab1-test-proxy
     volumes:
       - type: bind
         source: proxy/app
