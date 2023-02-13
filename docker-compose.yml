@@ -27,12 +27,15 @@ services:
       # Run smoke tests only
       # - PYTEST_TESTS=smoke_test.py
       # Default test options
-      - PYTEST_ADDOPTS=-ra --tb=short
+      # - PYTEST_ADDOPTS=-rA --tb=short
       # Shorter version for basic tests, only sample a subset of static files
-      # - PYTEST_ADDOPTS=-ra --tb=short --proxytest-nginx-static-files-n-samples=3
+      - PYTEST_ADDOPTS=-rA --tb=short --proxytest-nginx-static-files-n-samples=3
     depends_on:
       - proxy
+      - fastapi-server
+      - nginx-server
     restart: "no"
+    stop_grace_period: "1s"
   proxy:
     build: proxy
     image: 50012-lab1-test-proxy
@@ -50,6 +53,7 @@ services:
     ports:
       - "8080:8080"
       - "3000:3000"
+    stop_grace_period: "3s"
   proxy-wireshark:
     image: linuxserver/wireshark
     network_mode: "service:proxy"
@@ -59,6 +63,8 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Asia/Singapore
+    depends_on:
+      - proxy
   nginx-server:
     image: openresty/openresty
     volumes:
