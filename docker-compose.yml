@@ -11,11 +11,11 @@ services:
         source: fastapi-logs
         target: /var/log/fastapi/
       - type: bind
-        source: nginx-server/html
+        source: ./nginx-server/html
         target: /var/html
         read_only: true
       - type: bind
-        source: test-client/result
+        source: ./test-client/result
         target: /var/log/pytest
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
@@ -41,10 +41,10 @@ services:
     image: 50012-lab1-test-proxy
     volumes:
       - type: bind
-        source: proxy/app
+        source: ./proxy/app
         target: /app
       - type: bind
-        source: proxy/logs
+        source: ./proxy/logs
         target: /var/log/proxy/
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
@@ -73,7 +73,7 @@ services:
         target: /usr/local/openresty/nginx/html
         read_only: true
       - type: bind
-        source: nginx-server/default.conf
+        source: ./nginx-server/default.conf
         target: /etc/nginx/conf.d/default.conf
         read_only: true
       - type: volume

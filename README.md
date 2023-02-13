@@ -15,14 +15,22 @@ Place your proxy Python files inside `proxy/app` (create the folder if it doesn'
 
 ### Starting the environment
 
+Create the folders for the bind mounts, you only need to do this once.
+
 ```
-docker-compose up -d
+mkdir -p proxy/logs && mkdir -p test-client/result
+```
+
+Then deploy the compose file:
+
+```
+docker compose up
 ```
 
 Deploying the compose project automatically starts the full basic test suite (no smoke tests). Wait for the `test-client` service to exit. In another terminal window you can watch the stdout of the test-client using:
 
 ```
-docker-compose logs test-client -f
+docker compose logs test-client -f
 ```
 
 ### Viewing results
