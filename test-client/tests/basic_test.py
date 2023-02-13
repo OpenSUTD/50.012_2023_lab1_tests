@@ -6,7 +6,7 @@ import pytest
 from math import floor
 from typing import Callable
 
-from testutils import get_nginx_log_entries_after_time, get_fastapi_log_entries_after_time
+from testutils import get_nginx_log_entries_after_time
 
 
 def test_request_neverssl_receives_response(make_httpx_client):
@@ -91,37 +91,6 @@ def test_multiple_calls_to_same_resource_should_be_cached_single_client(make_htt
     relevant_log_entries = [l for l in get_nginx_log_entries_after_time(start_time) if
                             l["request_line"] == "GET http://nginx-server/ HTTP/1.1"]
     assert len(relevant_log_entries) == 1, "There must be exactly one request made after the start_time"
-
-
-def test_404_should_not_be_cached(make_httpx_client: Callable[..., httpx.Client]):
-    """
-    Tests that 404 responses should not be cached. We should see two requests in the NGINX log.
-    :param make_httpx_client: pytest fixture, closure that produces a http client with the configured proxy
-    """
-
-    client = make_httpx_client()
-    start_time = floor(time.time())
-    client.request(method="GET", url=f"http://nginx-server/404")
-    time.sleep(1)
-    client.request(method="GET", url=f"http://nginx-server/404")
-    relevant_log_entries = [l for l in get_nginx_log_entries_after_time(start_time) if
-                            l["request_line"] == "GET http://nginx-server/404 HTTP/1.1"]
-    assert len(relevant_log_entries) == 2, "There must be exactly two requests made after the start_time"
-
-
-def test_post_should_not_be_cached(make_httpx_client: Callable[..., httpx.Client]):
-    """
-    Tests that POST requests should not be cached. We should see two requests in the FastAPI log.
-    :param make_httpx_client: pytest fixture, closure that produces a http client with the configured proxy
-    """
-    client = make_httpx_client()
-    start_time = floor(time.time())
-    client.request(method="POST", url=f"http://fastapi-server/test_post", data={"hello": "world"})
-    time.sleep(1)
-    client.request(method="POST", url=f"http://fastapi-server/test_post", data={"hello": "world"})
-    relevant_log_entries = [l for l in get_fastapi_log_entries_after_time(start_time) if
-                            l["request_line"] == "POST http://fastapi-server/test_post HTTP/1.1"]
-    assert len(relevant_log_entries) == 2, "There must be exactly two requests made after the start_time"
 
 
 def test_cached_resources_should_be_namespaced_by_domain(make_httpx_client: Callable[..., httpx.Client]):

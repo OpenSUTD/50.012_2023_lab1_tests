@@ -1,7 +1,12 @@
+import time
+
 import asyncio
 import hashlib
 import httpx
+from math import floor
 from typing import Callable, List, Coroutine
+
+from testutils import get_nginx_log_entries_after_time, get_fastapi_log_entries_after_time
 
 
 def test_empty_body(make_httpx_client: Callable[..., httpx.Client]):
@@ -65,3 +70,34 @@ def test_cache_stampede_does_not_produce_corrupted_output(make_async_httpx_clien
     result = gathered_task.result()
     for md5_of_response in result:
         assert md5_of_response == md5_of_file_on_disk
+
+
+def test_404_should_not_be_cached(make_httpx_client: Callable[..., httpx.Client]):
+    """
+    Tests that 404 responses should not be cached. We should see two requests in the NGINX log.
+    :param make_httpx_client: pytest fixture, closure that produces a http client with the configured proxy
+    """
+
+    client = make_httpx_client()
+    start_time = floor(time.time())
+    client.request(method="GET", url=f"http://nginx-server/404")
+    time.sleep(1)
+    client.request(method="GET", url=f"http://nginx-server/404")
+    relevant_log_entries = [l for l in get_nginx_log_entries_after_time(start_time) if
+                            l["request_line"] == "GET http://nginx-server/404 HTTP/1.1"]
+    assert len(relevant_log_entries) == 2, "There must be exactly two requests made after the start_time"
+
+
+def test_post_should_not_be_cached(make_httpx_client: Callable[..., httpx.Client]):
+    """
+    Tests that POST requests should not be cached. We should see two requests in the FastAPI log.
+    :param make_httpx_client: pytest fixture, closure that produces a http client with the configured proxy
+    """
+    client = make_httpx_client()
+    start_time = floor(time.time())
+    client.request(method="POST", url=f"http://fastapi-server/test_post", data={"hello": "world"})
+    time.sleep(1)
+    client.request(method="POST", url=f"http://fastapi-server/test_post", data={"hello": "world"})
+    relevant_log_entries = [l for l in get_fastapi_log_entries_after_time(start_time) if
+                            l["request_line"] == "POST http://fastapi-server/test_post HTTP/1.1"]
+    assert len(relevant_log_entries) == 2, "There must be exactly two requests made after the start_time"
