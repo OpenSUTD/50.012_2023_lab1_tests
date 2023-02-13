@@ -75,7 +75,7 @@ def shutdown_proxy_and_wait(shell_process: psutil.Process):
         for connection in psutil.net_connections(kind="inet"):
             if connection.laddr.port == 8080:
                 print(f"WARNING: still found port used by process {connection.pid} in {connection.status} state. "
-                      "Retrying in 5 seconds...")
+                      "Retrying in 1 second...")
                 if connection.pid is None:
                     print("WARNING: netstat reports the port is being used by an exited process - "
                           "did you close your sockets on program exit??")
